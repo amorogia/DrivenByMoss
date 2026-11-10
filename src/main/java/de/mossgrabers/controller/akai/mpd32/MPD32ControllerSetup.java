@@ -25,12 +25,14 @@ import de.mossgrabers.framework.daw.data.bank.IParameterBank;
 import de.mossgrabers.framework.daw.midi.IMidiAccess;
 import de.mossgrabers.framework.daw.midi.IMidiInput;
 import de.mossgrabers.framework.parameter.IParameter;
+import de.mossgrabers.framework.utils.ButtonEvent;
 
 
 /**
  * Setup to support the Akai MPD32 controller. The 8 knobs control the volume, panorama and sends of
- * the selected track, the 8 rotary knobs control the parameters of the selected device and the 8
- * buttons set the note repeat rate (buttons 1-7) and act as Shift (button 8).
+ * the selected track, the 8 rotary knobs control the parameters of the selected device, the 8
+ * buttons set the note repeat rate (buttons 1-7) and act as Shift (button 8). Pad bank A is mapped
+ * to C1-D#2, the left/right buttons transpose it by octaves.
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
@@ -98,6 +100,9 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
 
         final MPD32ControlSurface surface = new MPD32ControlSurface (this.host, this.colorManager, this.configuration, input);
         this.surfaces.add (surface);
+
+        // Map pad bank A (notes 48-63) to C1-D#2 (notes 36-51), all other notes are unchanged
+        surface.updatePadNoteMapping ();
     }
 
 
@@ -138,6 +143,16 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
         // The stop button toggles note repeat, with Shift it switches the selected device off
         // Note: the transport buttons send on a different MIDI channel than the other controls
         this.addButton (ButtonID.REPEAT, "Repeat", new MPD32StopCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.STOP_CC);
+
+        // The left/right buttons shift the octave of pad bank A
+        this.addButton (ButtonID.OCTAVE_DOWN, "Octave Down", (event, velocity) -> {
+            if (event == ButtonEvent.DOWN)
+                this.getSurface ().shiftPadOctave (-1);
+        }, MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.OCTAVE_DOWN_CC);
+        this.addButton (ButtonID.OCTAVE_UP, "Octave Up", (event, velocity) -> {
+            if (event == ButtonEvent.DOWN)
+                this.getSurface ().shiftPadOctave (1);
+        }, MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.OCTAVE_UP_CC);
     }
 
 

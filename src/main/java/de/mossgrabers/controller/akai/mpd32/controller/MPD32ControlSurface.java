@@ -42,6 +42,23 @@ public class MPD32ControlSurface extends AbstractControlSurface<MPD32Configurati
     /** The MIDI channel the transport buttons (e.g. stop) send on (channel 1, zero-based). */
     public static final int TRANSPORT_CHANNEL = 0;
 
+    /** The CC of the left (octave down) button. */
+    public static final int OCTAVE_DOWN_CC = 115;
+
+    /** The CC of the right (octave up) button. */
+    public static final int OCTAVE_UP_CC = 116;
+
+    /** The first note sent by pad bank A. */
+    public static final int PAD_BANK_A_FIRST_NOTE = 48;
+
+    /** The number of pads. */
+    public static final int NUM_PADS = 16;
+
+    /** The offset to map pad bank A to C1. */
+    public static final int PAD_BANK_A_NOTE_OFFSET = -12;
+
+    private int               padOctaveOffset;
+
 
     /**
      * Constructor.
@@ -54,5 +71,39 @@ public class MPD32ControlSurface extends AbstractControlSurface<MPD32Configurati
     public MPD32ControlSurface (final IHost host, final ColorManager colorManager, final MPD32Configuration configuration, final IMidiInput input)
     {
         super (0, host, configuration, colorManager, null, input, null, null, 800, 300);
+    }
+
+
+    /**
+     * Shift the note mapping of pad bank A by octaves.
+     *
+     * @param octaves The number of octaves to shift (e.g. -1 or 1)
+     */
+    public void shiftPadOctave (final int octaves)
+    {
+        final int newOffset = this.padOctaveOffset + octaves;
+        final int firstNote = PAD_BANK_A_FIRST_NOTE + PAD_BANK_A_NOTE_OFFSET + newOffset * 12;
+        if (firstNote < 0 || firstNote + NUM_PADS - 1 > 127)
+            return;
+
+        this.padOctaveOffset = newOffset;
+        this.updatePadNoteMapping ();
+    }
+
+
+    /**
+     * Update the key translation table of the pads. Pad bank A is mapped to the configured octave,
+     * all other notes are passed through unchanged.
+     */
+    public void updatePadNoteMapping ()
+    {
+        final int translation = PAD_BANK_A_NOTE_OFFSET + this.padOctaveOffset * 12;
+        final int [] keyTranslationTable = new int [128];
+        for (int i = 0; i < keyTranslationTable.length; i++)
+        {
+            final boolean isPadBankA = i >= PAD_BANK_A_FIRST_NOTE && i < PAD_BANK_A_FIRST_NOTE + NUM_PADS;
+            keyTranslationTable[i] = isPadBankA ? i + translation : i;
+        }
+        this.setKeyTranslationTable (keyTranslationTable);
     }
 }
