@@ -4,10 +4,10 @@
 
 package de.mossgrabers.controller.akai.mpd32;
 
+import de.mossgrabers.controller.akai.mpd32.command.trigger.MPD32StopCommand;
 import de.mossgrabers.controller.akai.mpd32.controller.MPD32ControlSurface;
 import de.mossgrabers.framework.command.core.ContinuousCommand;
 import de.mossgrabers.framework.command.core.NopCommand;
-import de.mossgrabers.framework.command.trigger.track.SelectCommand;
 import de.mossgrabers.framework.configuration.ISettingsUI;
 import de.mossgrabers.framework.controller.AbstractControllerSetup;
 import de.mossgrabers.framework.controller.ButtonID;
@@ -20,6 +20,7 @@ import de.mossgrabers.framework.controller.hardware.IHwAbsoluteKnob;
 import de.mossgrabers.framework.controller.valuechanger.TwosComplementValueChanger;
 import de.mossgrabers.framework.daw.IHost;
 import de.mossgrabers.framework.daw.ModelSetup;
+import de.mossgrabers.framework.daw.constants.Resolution;
 import de.mossgrabers.framework.daw.data.bank.IParameterBank;
 import de.mossgrabers.framework.daw.midi.IMidiAccess;
 import de.mossgrabers.framework.daw.midi.IMidiInput;
@@ -27,8 +28,9 @@ import de.mossgrabers.framework.parameter.IParameter;
 
 
 /**
- * Setup to support the Akai MPD32 controller. Currently the 8 knobs (control the parameters of the
- * selected device) and 8 rotary knobs (device parameters) and the 8 buttons (select tracks 1-7, Shift) are supported.
+ * Setup to support the Akai MPD32 controller. The 8 knobs control the volume, panorama and sends of
+ * the selected track, the 8 rotary knobs control the parameters of the selected device and the 8
+ * buttons set the note repeat rate (buttons 1-7) and act as Shift (button 8).
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
@@ -91,8 +93,8 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
     protected void createSurface ()
     {
         final IMidiAccess midiAccess = this.factory.createMidiAccess ();
-        // All controls are handled via CC bindings, therefore no note input is needed
-        final IMidiInput input = midiAccess.createInput (null);
+        // The pads are used as note input, the knobs and buttons are bound via CC
+        final IMidiInput input = midiAccess.createInput ("MPD32 Pads", "8?????" /* Note off */, "9?????" /* Note on */);
 
         final MPD32ControlSurface surface = new MPD32ControlSurface (this.host, this.colorManager, this.configuration, input);
         this.surfaces.add (surface);
@@ -106,6 +108,7 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
         super.createObservers ();
 
         this.configuration.registerDeactivatedItemsHandler (this.model);
+        this.createNoteRepeatObservers (this.configuration, this.getSurface ());
     }
 
 
@@ -113,16 +116,28 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
     @Override
     protected void registerTriggerCommands ()
     {
-        final MPD32ControlSurface surface = this.getSurface ();
-
         // The buttons send 127 when pressed and 0 when released.
-        // Buttons 1-7 select the tracks 1-7, button 8 is the Shift button
-        for (int i = 0; i < MPD32ControlSurface.NUM_BUTTONS - 1; i++)
+        // Buttons 1-7 set the note repeat rate, button 8 is the Shift button
+        final Resolution [] noteRepeatRates =
         {
+            Resolution.RES_1_4,
+            Resolution.RES_1_4T,
+            Resolution.RES_1_8,
+            Resolution.RES_1_8T,
+            Resolution.RES_1_16,
+            Resolution.RES_1_16T,
+            Resolution.RES_1_32
+        };
+        for (int i = 0; i < noteRepeatRates.length; i++)
+        {
+            final Resolution rate = noteRepeatRates[i];
             final ButtonID buttonID = ButtonID.get (ButtonID.TRACK_SELECT_1, i);
-            this.addButton (buttonID, "Track " + (i + 1), new SelectCommand<> (i, this.model, surface), MIDI_CHANNEL, MPD32ControlSurface.BUTTON_1_CC + i);
+            this.addButton (buttonID, rate.getName (), (event, velocity) -> this.configuration.setNoteRepeatPeriod (rate), MIDI_CHANNEL, MPD32ControlSurface.BUTTON_1_CC + i);
         }
         this.addButton (ButtonID.SHIFT, "Shift", NopCommand.INSTANCE, MIDI_CHANNEL, MPD32ControlSurface.BUTTON_1_CC + MPD32ControlSurface.NUM_BUTTONS - 1);
+        // The stop button toggles note repeat, with Shift it switches the selected device off
+        // Note: the transport buttons send on a different MIDI channel than the other controls
+        this.addButton (ButtonID.REPEAT, "Repeat", new MPD32StopCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.STOP_CC);
     }
 
 

@@ -38,5 +38,6 @@ public class MPD32Configuration extends AbstractConfiguration
     public void init (final ISettingsUI globalSettings, final ISettingsUI documentSettings)
     {
         this.activateExcludeDeactivatedItemsSetting (globalSettings);
+        this.activateNoteRepeatSetting (documentSettings);
     }
 }
