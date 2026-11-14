@@ -58,6 +58,8 @@ public class MPD32ControlSurface extends AbstractControlSurface<MPD32Configurati
     public static final int PAD_BANK_A_NOTE_OFFSET = -12;
 
     private int               padOctaveOffset;
+    private int               drumOffset = PAD_BANK_A_FIRST_NOTE + PAD_BANK_A_NOTE_OFFSET;
+    private boolean           drumMode;
 
 
     /**
@@ -75,7 +77,33 @@ public class MPD32ControlSurface extends AbstractControlSurface<MPD32Configurati
 
 
     /**
-     * Shift the note mapping of pad bank A by octaves.
+     * Set if the pads should control the drum pads of a drum machine.
+     *
+     * @param drumMode True to control the drum pads
+     */
+    public void setDrumMode (final boolean drumMode)
+    {
+        if (this.drumMode == drumMode)
+            return;
+
+        this.drumMode = drumMode;
+        this.updatePadNoteMapping ();
+    }
+
+
+    /**
+     * Get the current first note of the drum pad window.
+     *
+     * @return The first note
+     */
+    public int getDrumOffset ()
+    {
+        return this.drumOffset;
+    }
+
+
+    /**
+     * Shift the note mapping of pad bank A by octaves. Only used if not in drum mode.
      *
      * @param octaves The number of octaves to shift (e.g. -1 or 1)
      */
@@ -92,12 +120,28 @@ public class MPD32ControlSurface extends AbstractControlSurface<MPD32Configurati
 
 
     /**
-     * Update the key translation table of the pads. Pad bank A is mapped to the configured octave,
-     * all other notes are passed through unchanged.
+     * Shift the window of drum pads which is controlled by pad bank A.
+     *
+     * @param offset The offset in notes
+     */
+    public void shiftDrumOffset (final int offset)
+    {
+        final int newOffset = this.drumOffset + offset;
+        if (newOffset < 0 || newOffset + NUM_PADS - 1 > 127)
+            return;
+
+        this.drumOffset = newOffset;
+        this.updatePadNoteMapping ();
+    }
+
+
+    /**
+     * Update the key translation table of the pads. Pad bank A is mapped to the configured octave or
+     * drum pad window, all other notes are passed through unchanged.
      */
     public void updatePadNoteMapping ()
     {
-        final int translation = PAD_BANK_A_NOTE_OFFSET + this.padOctaveOffset * 12;
+        final int translation = this.drumMode ? this.drumOffset - PAD_BANK_A_FIRST_NOTE : PAD_BANK_A_NOTE_OFFSET + this.padOctaveOffset * 12;
         final int [] keyTranslationTable = new int [128];
         for (int i = 0; i < keyTranslationTable.length; i++)
         {

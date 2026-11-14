@@ -21,6 +21,7 @@ import de.mossgrabers.framework.controller.valuechanger.TwosComplementValueChang
 import de.mossgrabers.framework.daw.IHost;
 import de.mossgrabers.framework.daw.ModelSetup;
 import de.mossgrabers.framework.daw.constants.Resolution;
+import de.mossgrabers.framework.daw.data.bank.IDrumPadBank;
 import de.mossgrabers.framework.daw.data.bank.IParameterBank;
 import de.mossgrabers.framework.daw.midi.IMidiAccess;
 import de.mossgrabers.framework.daw.midi.IMidiInput;
@@ -32,7 +33,8 @@ import de.mossgrabers.framework.utils.ButtonEvent;
  * Setup to support the Akai MPD32 controller. The 8 knobs control the volume, panorama and sends of
  * the selected track, the 8 rotary knobs control the parameters of the selected device, the 8
  * buttons set the note repeat rate (buttons 1-7) and act as Shift (button 8). Pad bank A is mapped
- * to C1-D#2, the left/right buttons transpose it by octaves.
+ * to C1-D#2. The left/right buttons transpose it by octaves or, if the selected device supports drum
+ * pads, page through its drum pads (the next page starts at E2).
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
@@ -85,6 +87,7 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
         ms.setNumSends (5);
         ms.setNumParams (MPD32ControlSurface.NUM_KNOBS);
         ms.setNumParamPages (8);
+        ms.setNumDrumPadLayers (MPD32ControlSurface.NUM_PADS);
 
         this.model = this.factory.createModel (this.configuration, this.colorManager, this.valueChanger, this.scales, ms);
     }
@@ -114,6 +117,42 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
 
         this.configuration.registerDeactivatedItemsHandler (this.model);
         this.createNoteRepeatObservers (this.configuration, this.getSurface ());
+
+        // Switch the pad mapping when the selected device changes
+        this.model.getCursorDevice ().addHasDrumPadsObserver (hasDrumPads -> this.host.scheduleTask (this::updatePadMapping, 100));
+        this.updatePadMapping ();
+    }
+
+
+    /**
+     * Update the pad mapping depending on if the selected device supports drum pads or not.
+     */
+    private void updatePadMapping ()
+    {
+        final MPD32ControlSurface surface = this.getSurface ();
+        final boolean drumMode = this.model.getCursorDevice ().hasDrumPads ();
+        surface.setDrumMode (drumMode);
+        if (drumMode)
+            this.scrollDrumPads (surface.getDrumOffset ());
+        else
+            this.model.getCursorDevice ().getDrumPadBank ().setIndication (false);
+    }
+
+
+    /**
+     * Scroll the drum pad bank so that its window matches the notes played by the MPD32. Note that
+     * Bitwig does not scroll the chain view of the Drum Machine when the window of a drum pad bank is
+     * changed, the indication only highlights the pads which are part of the window. To make the
+     * chain view follow, enable "Follow Played Notes" in the Drum Machine (the five-pin MIDI icon),
+     * the view then scrolls as soon as a pad of the new window is played.
+     *
+     * @param note The first note to display
+     */
+    private void scrollDrumPads (final int note)
+    {
+        final IDrumPadBank drumPadBank = this.model.getCursorDevice ().getDrumPadBank ();
+        drumPadBank.setIndication (true);
+        drumPadBank.scrollTo (note);
     }
 
 
@@ -144,15 +183,40 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
         // Note: the transport buttons send on a different MIDI channel than the other controls
         this.addButton (ButtonID.REPEAT, "Repeat", new MPD32StopCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.STOP_CC);
 
-        // The left/right buttons shift the octave of pad bank A
+        // The left/right buttons shift the octave of pad bank A. If a drum machine is selected they
+        // page through the drum pads instead.
         this.addButton (ButtonID.OCTAVE_DOWN, "Octave Down", (event, velocity) -> {
             if (event == ButtonEvent.DOWN)
-                this.getSurface ().shiftPadOctave (-1);
+                this.changePadOctave (-1);
         }, MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.OCTAVE_DOWN_CC);
         this.addButton (ButtonID.OCTAVE_UP, "Octave Up", (event, velocity) -> {
             if (event == ButtonEvent.DOWN)
-                this.getSurface ().shiftPadOctave (1);
+                this.changePadOctave (1);
         }, MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.OCTAVE_UP_CC);
+    }
+
+
+    /**
+     * Shift the pads by an octave or, if the selected device supports drum pads, page through its
+     * drum pads.
+     *
+     * @param direction -1 to go down, 1 to go up
+     */
+    private void changePadOctave (final int direction)
+    {
+        final MPD32ControlSurface surface = this.getSurface ();
+        final boolean hasDrumPads = this.model.getCursorDevice ().hasDrumPads ();
+
+        if (hasDrumPads)
+        {
+            surface.setDrumMode (true);
+            surface.shiftDrumOffset (direction * MPD32ControlSurface.NUM_PADS);
+            this.scrollDrumPads (surface.getDrumOffset ());
+            return;
+        }
+
+        surface.setDrumMode (false);
+        surface.shiftPadOctave (direction);
     }
 
 
