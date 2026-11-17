@@ -4,6 +4,7 @@
 
 package de.mossgrabers.controller.akai.mpd32;
 
+import de.mossgrabers.controller.akai.mpd32.command.trigger.MPD32PlayCommand;
 import de.mossgrabers.controller.akai.mpd32.command.trigger.MPD32StopCommand;
 import de.mossgrabers.controller.akai.mpd32.controller.MPD32ControlSurface;
 import de.mossgrabers.framework.command.core.ContinuousCommand;
@@ -182,29 +183,43 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
         // The stop button toggles note repeat, with Shift it switches the selected device off
         // Note: the transport buttons send on a different MIDI channel than the other controls
         this.addButton (ButtonID.REPEAT, "Repeat", new MPD32StopCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.STOP_CC);
+        // The play button toggles the playback, with Shift it continues from the stop position
+        this.addButton (ButtonID.PLAY, "Play", new MPD32PlayCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.PLAY_CC);
 
         // The left/right buttons shift the octave of pad bank A. If a drum machine is selected they
-        // page through the drum pads instead.
+        // page through the drum pads instead. With Shift they select the previous/next device of the
+        // selected track.
         this.addButton (ButtonID.OCTAVE_DOWN, "Octave Down", (event, velocity) -> {
             if (event == ButtonEvent.DOWN)
-                this.changePadOctave (-1);
+                this.handleLeftRightButton (-1);
         }, MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.OCTAVE_DOWN_CC);
         this.addButton (ButtonID.OCTAVE_UP, "Octave Up", (event, velocity) -> {
             if (event == ButtonEvent.DOWN)
-                this.changePadOctave (1);
+                this.handleLeftRightButton (1);
         }, MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.OCTAVE_UP_CC);
     }
 
 
     /**
-     * Shift the pads by an octave or, if the selected device supports drum pads, page through its
-     * drum pads.
+     * Handle the left/right buttons. If Shift is pressed, the previous/next device of the selected
+     * track is selected. Otherwise the pads are shifted by an octave or, if the selected device
+     * supports drum pads, paged through its drum pads.
      *
-     * @param direction -1 to go down, 1 to go up
+     * @param direction -1 to go down/previous, 1 to go up/next
      */
-    private void changePadOctave (final int direction)
+    private void handleLeftRightButton (final int direction)
     {
         final MPD32ControlSurface surface = this.getSurface ();
+
+        if (surface.isShiftPressed ())
+        {
+            if (direction < 0)
+                this.model.getCursorDevice ().selectPrevious ();
+            else
+                this.model.getCursorDevice ().selectNext ();
+            return;
+        }
+
         final boolean hasDrumPads = this.model.getCursorDevice ().hasDrumPads ();
 
         if (hasDrumPads)

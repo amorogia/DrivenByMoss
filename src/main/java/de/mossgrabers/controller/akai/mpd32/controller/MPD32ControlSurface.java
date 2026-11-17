@@ -39,6 +39,9 @@ public class MPD32ControlSurface extends AbstractControlSurface<MPD32Configurati
     /** The CC of the stop button. */
     public static final int STOP_CC = 117;
 
+    /** The CC of the play button. */
+    public static final int PLAY_CC = 118;
+
     /** The MIDI channel the transport buttons (e.g. stop) send on (channel 1, zero-based). */
     public static final int TRANSPORT_CHANNEL = 0;
 
