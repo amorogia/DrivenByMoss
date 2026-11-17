@@ -5,6 +5,7 @@
 package de.mossgrabers.controller.akai.mpd32;
 
 import de.mossgrabers.controller.akai.mpd32.command.trigger.MPD32PlayCommand;
+import de.mossgrabers.controller.akai.mpd32.command.trigger.MPD32RecordCommand;
 import de.mossgrabers.controller.akai.mpd32.command.trigger.MPD32StopCommand;
 import de.mossgrabers.controller.akai.mpd32.controller.MPD32ControlSurface;
 import de.mossgrabers.framework.command.core.ContinuousCommand;
@@ -185,6 +186,9 @@ public class MPD32ControllerSetup extends AbstractControllerSetup<MPD32ControlSu
         this.addButton (ButtonID.REPEAT, "Repeat", new MPD32StopCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.STOP_CC);
         // The play button toggles the playback, with Shift it continues from the stop position
         this.addButton (ButtonID.PLAY, "Play", new MPD32PlayCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.PLAY_CC);
+        // The record button toggles the clip launcher overdub, with Shift it records a clip in the
+        // selected slot (Mix view only)
+        this.addButton (ButtonID.RECORD, "Record", new MPD32RecordCommand (this.model, this.getSurface ()), MPD32ControlSurface.TRANSPORT_CHANNEL, MPD32ControlSurface.RECORD_CC);
 
         // The left/right buttons shift the octave of pad bank A. If a drum machine is selected they
         // page through the drum pads instead. With Shift they select the previous/next device of the

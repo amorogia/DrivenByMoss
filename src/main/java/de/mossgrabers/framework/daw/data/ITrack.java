@@ -178,6 +178,15 @@ public interface ITrack extends IChannel
 
 
     /**
+     * Starts recording a new clip in the clip launcher at the given slot index. If the track is not
+     * armed, it is armed automatically.
+     *
+     * @param slotIndex The index of the slot
+     */
+    void recordNewLauncherClip (int slotIndex);
+
+
+    /**
      * Returns true if a clip is playing on the track.
      *
      * @return True if a clip is playing on the track.

@@ -224,6 +224,14 @@ public class EmptyTrack extends EmptyChannel implements ITrack
 
     /** {@inheritDoc} */
     @Override
+    public void recordNewLauncherClip (final int slotIndex)
+    {
+        // Intentionally empty
+    }
+
+
+    /** {@inheritDoc} */
+    @Override
     public boolean isRecordQuantizationNoteLength ()
     {
         return false;

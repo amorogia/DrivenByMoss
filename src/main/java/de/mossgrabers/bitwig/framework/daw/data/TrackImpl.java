@@ -359,6 +359,16 @@ public class TrackImpl extends ChannelImpl implements ITrack
 
     /** {@inheritDoc} */
     @Override
+    public void recordNewLauncherClip (final int slotIndex)
+    {
+        // recordNewLauncherClip requires an absolute position and is not paged!
+        final int offset = this.slotBank.getScrollPosition ();
+        this.track.recordNewLauncherClip (offset + slotIndex);
+    }
+
+
+    /** {@inheritDoc} */
+    @Override
     public boolean isRecordQuantizationNoteLength ()
     {
         return this.application.isRecordQuantizationNoteLength ();
