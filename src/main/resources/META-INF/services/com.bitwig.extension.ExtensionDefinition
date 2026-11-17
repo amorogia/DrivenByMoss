@@ -6,6 +6,7 @@ de.mossgrabers.bitwig.controller.akai.apc.APCmkIIControllerExtensionDefinition
 de.mossgrabers.bitwig.controller.akai.apcmini.APCminiMk1ControllerExtensionDefinition
 de.mossgrabers.bitwig.controller.akai.apcmini.APCminiMk2ControllerExtensionDefinition
 de.mossgrabers.bitwig.controller.akai.fire.FireControllerExtensionDefinition
+de.mossgrabers.bitwig.controller.akai.mpd32.MPD32ControllerExtensionDefinition
 de.mossgrabers.bitwig.controller.akai.acvs.ACVSLiveControllerExtensionDefinition
 de.mossgrabers.bitwig.controller.arturia.beatstep.BeatstepControllerExtensionDefinition
 de.mossgrabers.bitwig.controller.electra.one.normal.ElectraOneControllerExtensionDefinition

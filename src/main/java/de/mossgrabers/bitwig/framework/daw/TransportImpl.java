@@ -193,6 +193,14 @@ public class TransportImpl implements ITransport
 
     /** {@inheritDoc} */
     @Override
+    public void continuePlayback ()
+    {
+        this.transport.continuePlayback ();
+    }
+
+
+    /** {@inheritDoc} */
+    @Override
     public boolean isPlaying ()
     {
         return this.transport.isPlaying ().get ();

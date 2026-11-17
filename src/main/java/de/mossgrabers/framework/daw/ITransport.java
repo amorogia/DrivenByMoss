@@ -27,6 +27,12 @@ public interface ITransport extends IObserverManagement
 
 
     /**
+     * Continue the playback from the stop position.
+     */
+    void continuePlayback ();
+
+
+    /**
      * Returns true if playing.
      *
      * @return True if playing
